@@ -134,10 +134,10 @@ Este projeto foi desenvolvido com o objetivo de integrar, em um único sistema, 
 
  Integrantes
 
-- Nome 1
-- Nome 2
-- Nome 3
-- Nome 4
-- Nome 5
+- Felipe Tavares
+- Eric Rocha
+- Alexandre Cesar
+- Gabriel Nolasco
+- Guilherme Pereira
 
 ---
