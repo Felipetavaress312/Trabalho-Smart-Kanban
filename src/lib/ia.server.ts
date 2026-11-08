@@ -60,7 +60,7 @@ export async function gerarPlano(titulo: string, descricao: string, signal?: Abo
         store: false,
         include: ["reasoning.encrypted_content"],
       },
-    },
+    } : { openai: { store: false } },
   });
 
   const saida = await result.output;
