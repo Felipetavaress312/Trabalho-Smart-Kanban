@@ -28,3 +28,7 @@ use the editor.
   own key and store it in Secrets.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
+
+## Project rules
+- Domain logic (data structures, OOP classes, undo actions, repository) lives in `src/domain/` with hand-written structures (no library shortcuts) — the project is defended orally per pillar, so code must stay readable and self-contained.
+- AI planning runs only server-side (`src/lib/ia.server.ts` via `ia.functions.ts`) with structured output; the browser saves results through `TarefaRepositorio`.
