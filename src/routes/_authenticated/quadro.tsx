@@ -2,7 +2,8 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, Loader2, LogOut, Plus, Sparkles, Trash2, Undo2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, LogOut, Pencil, Plus, Sparkles, Trash2, Undo2 } from "lucide-react";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -12,7 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Usuario, type Tarefa, type TipoTarefa, type Status } from "@/domain/modelos";
 import { Pilha } from "@/domain/estruturas";
 import { TarefaRepositorio } from "@/domain/repositorio";
-import { Acao, CriarAcao, ExcluirAcao, MoverAcao } from "@/domain/acoes";
+import { Acao, CriarAcao, EditarAcao, ExcluirAcao, MoverAcao } from "@/domain/acoes";
 import { autoPlanejar } from "@/lib/ia.functions";
 import { cn } from "@/lib/utils";
 
@@ -51,6 +52,39 @@ function QuadroPage() {
   const [titulo, setTitulo] = useState("");
   const [descricao, setDescricao] = useState("");
   const [tipo, setTipo] = useState<TipoTarefa>("simples");
+  const [editando, setEditando] = useState<Tarefa | null>(null);
+  const [edTitulo, setEdTitulo] = useState("");
+  const [edDescricao, setEdDescricao] = useState("");
+
+  function abrirEdicao(t: Tarefa) {
+    setEditando(t);
+    setEdTitulo(t.titulo);
+    setEdDescricao(t.descricao);
+  }
+
+  async function salvarEdicao(e: React.FormEvent) {
+    e.preventDefault();
+    const t = editando;
+    if (!t) return;
+    if (!edTitulo.trim()) {
+      toast.error("O título não pode ficar vazio.");
+      return;
+    }
+    const antigo = { titulo: t.titulo, descricao: t.descricao };
+    t.titulo = edTitulo.trim();
+    t.descricao = edDescricao.trim();
+    try {
+      await repo.current.atualizarTexto(t);
+      historico.current.empilhar(new EditarAcao(t.id, antigo.titulo, antigo.descricao));
+      setEditando(null);
+      toast.success("Tarefa atualizada");
+    } catch (err) {
+      t.titulo = antigo.titulo;
+      t.descricao = antigo.descricao;
+      toast.error((err as Error).message);
+    }
+    redesenhar();
+  }
 
   useEffect(() => {
     let cancelado = false;
@@ -226,7 +260,10 @@ function QuadroPage() {
                       <span className={cn("rounded px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase text-primary-foreground", corTag[t.tipo])}>
                         {t.rotulo()} · P{t.calcularPrioridade()}
                       </span>
-                      <button onClick={() => excluir(t)} aria-label="Excluir" className="text-muted-foreground hover:text-destructive"><Trash2 className="size-4" /></button>
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => abrirEdicao(t)} aria-label="Editar" className="text-muted-foreground hover:text-foreground"><Pencil className="size-4" /></button>
+                        <button onClick={() => excluir(t)} aria-label="Excluir" className="text-muted-foreground hover:text-destructive"><Trash2 className="size-4" /></button>
+                      </div>
                     </div>
                     <h3 className="mt-2 font-semibold leading-snug">{t.titulo}</h3>
                     {t.descricao && <p className="mt-1 text-sm text-muted-foreground">{t.descricao}</p>}
@@ -266,6 +303,22 @@ function QuadroPage() {
           ))}
         </div>
       )}
+
+      <Dialog open={editando !== null} onOpenChange={(o) => !o && setEditando(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar tarefa</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={salvarEdicao} className="space-y-3">
+            <Input aria-label="Título" value={edTitulo} onChange={(e) => setEdTitulo(e.target.value)} maxLength={200} />
+            <Textarea aria-label="Descrição" value={edDescricao} onChange={(e) => setEdDescricao(e.target.value)} rows={4} placeholder="Descrição" />
+            <DialogFooter>
+              <Button type="button" variant="ghost" onClick={() => setEditando(null)}>Cancelar</Button>
+              <Button type="submit">Salvar</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }

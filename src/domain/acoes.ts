@@ -39,6 +39,26 @@ export class ExcluirAcao extends Acao {
   }
 }
 
+export class EditarAcao extends Acao {
+  constructor(
+    private tarefaId: string,
+    private tituloAntigo: string,
+    private descricaoAntiga: string,
+  ) {
+    super();
+  }
+  descricao() {
+    return `editar "${this.tituloAntigo}"`;
+  }
+  async desfazer(quadro: Quadro, repo: TarefaRepositorio) {
+    const t = quadro.buscar(this.tarefaId);
+    if (!t) return;
+    t.titulo = this.tituloAntigo;
+    t.descricao = this.descricaoAntiga;
+    await repo.atualizarTexto(t);
+  }
+}
+
 export class MoverAcao extends Acao {
   constructor(
     private tarefaId: string,
