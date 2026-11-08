@@ -31,24 +31,28 @@ export type Plano = { subtarefas: { titulo: string; minutosEstimados: number }[]
 
 export async function gerarPlano(titulo: string, descricao: string, signal?: AbortSignal): Promise<Plano> {
   const apiKey = process.env["LOVABLE_API_KEY"];
-  if (!apiKey) throw new Error("Chave da IA não configurada.");
+  const openaiKey = process.env["OPENAI_API_KEY"];
+  if (!apiKey && !openaiKey) return planoLocal(titulo, descricao);
 
-  const provider = createOpenAI({
-    baseURL: "https://ai.gateway.lovable.dev/v1",
-    apiKey,
-    headers: { "Lovable-API-Key": apiKey, "X-Lovable-AIG-SDK": "vercel-ai-sdk" },
-    fetch: runIdFetch(),
-  });
+  // Com OPENAI_API_KEY (ex.: deploy na Vercel) chama a OpenAI direto.
+  const provider = apiKey
+    ? createOpenAI({
+        baseURL: "https://ai.gateway.lovable.dev/v1",
+        apiKey,
+        headers: { "Lovable-API-Key": apiKey, "X-Lovable-AIG-SDK": "vercel-ai-sdk" },
+        fetch: runIdFetch(),
+      })
+    : createOpenAI({ apiKey: openaiKey! });
 
   const result = streamText({
-    model: provider.responses("openai/gpt-6-astra"),
+    model: provider.responses(apiKey ? "openai/gpt-6-astra" : "gpt-4o-mini"),
     instructions:
       "Você é um gerente de projetos. Quebre a tarefa em 3 a 7 subtarefas pequenas, concretas e em ordem de execução. " +
       "Para cada uma, estime o tempo em minutos (entre 10 e 480). Responda em português do Brasil.",
     messages: [{ role: "user", content: `Título: ${titulo}\nDescrição: ${descricao || "(sem descrição)"}` }],
     output: Output.object({ schema: esquema }),
     ...(signal ? { abortSignal: signal } : {}),
-    providerOptions: {
+    providerOptions: apiKey ? {
       openai: {
         forceReasoning: true,
         reasoningEffort: "low",
