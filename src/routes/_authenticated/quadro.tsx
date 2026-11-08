@@ -179,10 +179,6 @@ function QuadroPage() {
     setPlanejando(t.id);
     try {
       const r = await planejar({ data: { titulo: t.titulo, descricao: t.descricao } });
-      if (!r.ok) {
-        toast.error(r.erro);
-        return;
-      }
       t.subtarefas = await repo.current.salvarSubtarefas(t.id, r.subtarefas);
       toast.success(`${t.subtarefas.length} subtarefas planejadas`);
       redesenhar();
