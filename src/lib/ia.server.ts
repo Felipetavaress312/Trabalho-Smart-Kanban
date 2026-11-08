@@ -32,6 +32,8 @@ export type Plano = { subtarefas: { titulo: string; minutosEstimados: number }[]
 export async function gerarPlano(titulo: string, descricao: string, signal?: AbortSignal): Promise<Plano> {
   const apiKey = process.env["LOVABLE_API_KEY"];
   const openaiKey = process.env["OPENAI_API_KEY"];
+  const geminiKey = process.env["GEMINI_API_KEY"];
+  if (!apiKey && geminiKey) return gerarComGemini(titulo, descricao, geminiKey, signal);
   if (!apiKey && !openaiKey) return planoLocal(titulo, descricao);
 
   // Com OPENAI_API_KEY (ex.: deploy na Vercel) chama a OpenAI direto.
@@ -64,6 +66,36 @@ export async function gerarPlano(titulo: string, descricao: string, signal?: Abo
   });
 
   const saida = await result.output;
+  return {
+    subtarefas: saida.subtarefas.slice(0, 8).map((s) => ({
+      titulo: s.titulo.trim(),
+      minutosEstimados: Math.max(5, Math.min(600, Math.round(s.minutos_estimados))),
+    })),
+  };
+}
+
+const INSTRUCOES =
+  "Você é um gerente de projetos. Quebre a tarefa em 3 a 7 subtarefas pequenas, concretas e em ordem de execução. " +
+  "Para cada uma, estime o tempo em minutos (entre 10 e 480). Responda em português do Brasil. " +
+  'Responda SOMENTE com JSON no formato {"subtarefas":[{"titulo":"...","minutos_estimados":30}]}.';
+
+/** Google Gemini (chave grátis em aistudio.google.com), usado fora da Lovable, ex.: Vercel. */
+async function gerarComGemini(titulo: string, descricao: string, chave: string, signal?: AbortSignal): Promise<Plano> {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${chave}`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    signal: signal ?? null,
+    body: JSON.stringify({
+      systemInstruction: { parts: [{ text: INSTRUCOES }] },
+      contents: [{ role: "user", parts: [{ text: `Título: ${titulo}\nDescrição: ${descricao || "(sem descrição)"}` }] }],
+      generationConfig: { responseMimeType: "application/json" },
+    }),
+  });
+  if (!res.ok) throw new Error(`Gemini respondeu ${res.status}`);
+  const json = (await res.json()) as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
+  const texto = json.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+  const saida = esquema.parse(JSON.parse(texto));
   return {
     subtarefas: saida.subtarefas.slice(0, 8).map((s) => ({
       titulo: s.titulo.trim(),
