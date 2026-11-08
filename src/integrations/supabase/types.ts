@@ -14,7 +14,80 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      subtarefas: {
+        Row: {
+          feita: boolean
+          id: string
+          minutos_estimados: number
+          ordem: number
+          tarefa_id: string
+          titulo: string
+          user_id: string
+        }
+        Insert: {
+          feita?: boolean
+          id?: string
+          minutos_estimados?: number
+          ordem?: number
+          tarefa_id: string
+          titulo: string
+          user_id?: string
+        }
+        Update: {
+          feita?: boolean
+          id?: string
+          minutos_estimados?: number
+          ordem?: number
+          tarefa_id?: string
+          titulo?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subtarefas_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "tarefas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tarefas: {
+        Row: {
+          concluido_em: string | null
+          criado_em: string
+          descricao: string
+          id: string
+          posicao: number
+          status: string
+          tipo: string
+          titulo: string
+          user_id: string
+        }
+        Insert: {
+          concluido_em?: string | null
+          criado_em?: string
+          descricao?: string
+          id?: string
+          posicao?: number
+          status?: string
+          tipo?: string
+          titulo: string
+          user_id?: string
+        }
+        Update: {
+          concluido_em?: string | null
+          criado_em?: string
+          descricao?: string
+          id?: string
+          posicao?: number
+          status?: string
+          tipo?: string
+          titulo?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
