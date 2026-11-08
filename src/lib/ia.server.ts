@@ -34,7 +34,7 @@ export async function gerarPlano(titulo: string, descricao: string, signal?: Abo
   const openaiKey = process.env["OPENAI_API_KEY"];
   const geminiKey = process.env["GEMINI_API_KEY"];
   if (!apiKey && geminiKey) return gerarComGemini(titulo, descricao, geminiKey, signal);
-  if (!apiKey && !openaiKey) return planoLocal(titulo, descricao);
+  if (!apiKey && !openaiKey) throw new Error("nenhuma chave de IA cadastrada no servidor (GEMINI_API_KEY)");
 
   // Com OPENAI_API_KEY (ex.: deploy na Vercel) chama a OpenAI direto.
   const provider = apiKey
@@ -92,7 +92,10 @@ async function gerarComGemini(titulo: string, descricao: string, chave: string, 
       generationConfig: { responseMimeType: "application/json" },
     }),
   });
-  if (!res.ok) throw new Error(`Gemini respondeu ${res.status}`);
+  if (!res.ok) {
+    const corpo = (await res.text()).slice(0, 200);
+    throw new Error(`Gemini respondeu ${res.status}: ${corpo}`);
+  }
   const json = (await res.json()) as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
   const texto = json.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
   const saida = esquema.parse(JSON.parse(texto));
