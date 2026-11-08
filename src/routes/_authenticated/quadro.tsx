@@ -53,15 +53,20 @@ function QuadroPage() {
   const [tipo, setTipo] = useState<TipoTarefa>("simples");
 
   useEffect(() => {
+    let cancelado = false;
     repo.current
       .listar()
       .then((ts) => {
+        if (cancelado) return;
         quadro.limpar();
         ts.forEach((t) => quadro.adicionar(t));
         redesenhar();
       })
       .catch((e) => toast.error(e.message))
-      .finally(() => setCarregando(false));
+      .finally(() => !cancelado && setCarregando(false));
+    return () => {
+      cancelado = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
