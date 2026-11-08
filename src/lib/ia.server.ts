@@ -85,7 +85,7 @@ async function gerarComGemini(titulo: string, descricao: string, chave: string, 
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    signal,
+    signal: signal ?? null,
     body: JSON.stringify({
       systemInstruction: { parts: [{ text: INSTRUCOES }] },
       contents: [{ role: "user", parts: [{ text: `Título: ${titulo}\nDescrição: ${descricao || "(sem descrição)"}` }] }],
