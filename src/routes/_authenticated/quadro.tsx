@@ -100,7 +100,10 @@ function QuadroPage() {
 
   async function criar(e: React.FormEvent) {
     e.preventDefault();
-    if (!titulo.trim()) return;
+    if (!titulo.trim()) {
+      toast.error("Digite um título para a tarefa antes de adicionar.");
+      return;
+    }
     try {
       const t = await repo.current.criar({ titulo: titulo.trim(), descricao: descricao.trim(), tipo });
       quadro.adicionar(t);
