@@ -66,7 +66,10 @@ function QuadroPage() {
 
   const desfazer = useCallback(async () => {
     const acao = historico.current.desempilhar();
-    if (!acao) return toast("Nada para desfazer");
+    if (!acao) {
+      toast("Nada para desfazer");
+      return;
+    }
     try {
       await acao.desfazer(quadro, repo.current);
       toast.success(`Desfeito: ${acao.descricao()}`);
@@ -133,7 +136,10 @@ function QuadroPage() {
     setPlanejando(t.id);
     try {
       const r = await planejar({ data: { titulo: t.titulo, descricao: t.descricao } });
-      if (!r.ok) return toast.error(r.erro);
+      if (!r.ok) {
+        toast.error(r.erro);
+        return;
+      }
       t.subtarefas = await repo.current.salvarSubtarefas(t.id, r.subtarefas);
       toast.success(`${t.subtarefas.length} subtarefas planejadas`);
       redesenhar();

@@ -155,7 +155,7 @@ export class Quadro {
   remover(id: string): Tarefa | null {
     for (const col of this.colunas.paraArray()) {
       const i = col.tarefas.findIndex((t) => t.id === id);
-      if (i >= 0) return col.tarefas.splice(i, 1)[0];
+      if (i >= 0) return col.tarefas.splice(i, 1)[0] ?? null;
     }
     return null;
   }

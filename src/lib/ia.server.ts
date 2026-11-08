@@ -30,7 +30,7 @@ const esquema = z.object({
 export type Plano = { subtarefas: { titulo: string; minutosEstimados: number }[] };
 
 export async function gerarPlano(titulo: string, descricao: string, signal?: AbortSignal): Promise<Plano> {
-  const apiKey = process.env.LOVABLE_API_KEY;
+  const apiKey = process.env["LOVABLE_API_KEY"];
   if (!apiKey) throw new Error("Chave da IA não configurada.");
 
   const provider = createOpenAI({
@@ -47,7 +47,7 @@ export async function gerarPlano(titulo: string, descricao: string, signal?: Abo
       "Para cada uma, estime o tempo em minutos (entre 10 e 480). Responda em português do Brasil.",
     messages: [{ role: "user", content: `Título: ${titulo}\nDescrição: ${descricao || "(sem descrição)"}` }],
     output: Output.object({ schema: esquema }),
-    abortSignal: signal,
+    ...(signal ? { abortSignal: signal } : {}),
     providerOptions: {
       openai: {
         forceReasoning: true,
