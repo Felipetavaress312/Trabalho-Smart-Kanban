@@ -47,7 +47,16 @@ function AuthPage() {
         else toast.success("Conta criada! Confirme pelo link enviado ao seu e-mail.");
       }
     } catch (err) {
-      toast.error((err as Error).message);
+      const msg = (err as Error).message.toLowerCase();
+      if (msg.includes("weak") || msg.includes("easy to guess") || msg.includes("pwned"))
+        toast.error("Senha muito fraca ou conhecida em vazamentos. Use uma senha mais forte, com letras, números e símbolos.");
+      else if (msg.includes("invalid login credentials"))
+        toast.error("E-mail ou senha incorretos — ou a conta ainda não existe. Crie a conta primeiro.");
+      else if (msg.includes("email not confirmed"))
+        toast.error("Confirme seu e-mail pelo link que enviamos antes de entrar.");
+      else if (msg.includes("already registered"))
+        toast.error("Este e-mail já tem conta. Use a opção Entrar.");
+      else toast.error((err as Error).message);
     } finally {
       setCarregando(false);
     }
@@ -75,6 +84,9 @@ function AuthPage() {
           <div className="space-y-1.5">
             <Label htmlFor="senha">Senha</Label>
             <Input id="senha" type="password" minLength={6} required value={senha} onChange={(e) => setSenha(e.target.value)} />
+            {modo === "cadastrar" && (
+              <p className="text-xs text-muted-foreground">Use uma senha forte (ex.: misture letras, números e símbolos). Senhas comuns como "123456" são recusadas.</p>
+            )}
           </div>
           <Button type="submit" className="w-full" disabled={carregando}>
             {modo === "entrar" ? "Entrar" : "Cadastrar"}
