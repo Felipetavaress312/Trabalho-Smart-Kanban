@@ -33,8 +33,27 @@ export async function gerarPlano(titulo: string, descricao: string, signal?: Abo
   const apiKey = process.env["LOVABLE_API_KEY"];
   const openaiKey = process.env["OPENAI_API_KEY"];
   const geminiKey = process.env["GEMINI_API_KEY"];
-  if (!apiKey && geminiKey) return gerarComGemini(titulo, descricao, geminiKey, signal);
-  if (!apiKey && !openaiKey) throw new Error("nenhuma chave de IA cadastrada no servidor (GEMINI_API_KEY)");
+  const groqKey = process.env["GROQ_API_KEY"];
+  if (!apiKey && (groqKey || geminiKey)) {
+    // Duas IAs independentes: se uma estiver fora do ar, a outra responde.
+    const erros: string[] = [];
+    if (groqKey) {
+      try {
+        return await gerarComGroq(titulo, descricao, groqKey, signal);
+      } catch (e) {
+        erros.push(`Groq: ${(e as Error).message}`);
+      }
+    }
+    if (geminiKey) {
+      try {
+        return await gerarComGemini(titulo, descricao, geminiKey, signal);
+      } catch (e) {
+        erros.push(`Gemini: ${(e as Error).message}`);
+      }
+    }
+    throw new Error(erros.join(" | "));
+  }
+  if (!apiKey && !openaiKey) throw new Error("nenhuma chave de IA cadastrada no servidor (GROQ_API_KEY / GEMINI_API_KEY)");
 
   // Com OPENAI_API_KEY (ex.: deploy na Vercel) chama a OpenAI direto.
   const provider = apiKey
@@ -78,6 +97,46 @@ const INSTRUCOES =
   "Você é um gerente de projetos. Quebre a tarefa em 3 a 7 subtarefas pequenas, concretas e em ordem de execução. " +
   "Para cada uma, estime o tempo em minutos (entre 10 e 480). Responda em português do Brasil. " +
   'Responda SOMENTE com JSON no formato {"subtarefas":[{"titulo":"...","minutos_estimados":30}]}.';
+
+/** Groq (chave grátis em console.groq.com), muito rápido e estável. */
+async function gerarComGroq(titulo: string, descricao: string, chave: string, signal?: AbortSignal): Promise<Plano> {
+  const modelos = ["llama-3.3-70b-versatile", "openai/gpt-oss-120b", "llama-3.1-8b-instant"];
+  let ultimoErro = "sem resposta";
+  for (const modelo of modelos) {
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${chave}` },
+      signal: signal ?? null,
+      body: JSON.stringify({
+        model: modelo,
+        response_format: { type: "json_object" },
+        messages: [
+          { role: "system", content: INSTRUCOES },
+          { role: "user", content: `Título: ${titulo}\nDescrição: ${descricao || "(sem descrição)"}\nResponda em JSON.` },
+        ],
+      }),
+    });
+    if (!res.ok) {
+      ultimoErro = `${res.status}: ${(await res.text()).slice(0, 150)}`;
+      if (res.status === 401) break; // chave errada: não adianta trocar de modelo
+      continue;
+    }
+    const json = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+    try {
+      const saida = esquema.parse(JSON.parse(json.choices?.[0]?.message?.content ?? ""));
+      if (saida.subtarefas.length === 0) throw new Error("lista vazia");
+      return {
+        subtarefas: saida.subtarefas.slice(0, 8).map((s) => ({
+          titulo: s.titulo.trim(),
+          minutosEstimados: Math.max(5, Math.min(600, Math.round(s.minutos_estimados))),
+        })),
+      };
+    } catch (e) {
+      ultimoErro = `resposta inválida (${(e as Error).message})`;
+    }
+  }
+  throw new Error(ultimoErro);
+}
 
 /** Google Gemini (chave grátis em aistudio.google.com), usado fora da Lovable, ex.: Vercel. */
 async function gerarComGemini(titulo: string, descricao: string, chave: string, signal?: AbortSignal): Promise<Plano> {
