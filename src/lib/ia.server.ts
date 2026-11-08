@@ -71,3 +71,24 @@ export async function gerarPlano(titulo: string, descricao: string, signal?: Abo
     })),
   };
 }
+
+/**
+ * Plano de contingência (sem chave de IA ou se a API falhar):
+ * gera subtarefas a partir de etapas padrão de qualquer atividade,
+ * com tempo proporcional ao tamanho da descrição.
+ */
+export function planoLocal(titulo: string, descricao: string): Plano {
+  const t = titulo.trim() || "tarefa";
+  const peso = Math.min(3, 1 + Math.floor(descricao.trim().length / 150));
+  const etapas: [string, number][] = [
+    [`Entender o objetivo de "${t}" e levantar requisitos`, 20],
+    [`Pesquisar referências e materiais para "${t}"`, 30],
+    [`Planejar as etapas e dividir o trabalho`, 20],
+    [`Executar a parte principal de "${t}"`, 90],
+    [`Revisar e testar o resultado`, 30],
+    [`Finalizar e documentar a entrega`, 20],
+  ];
+  return {
+    subtarefas: etapas.map(([nome, min]) => ({ titulo: nome, minutosEstimados: min * peso })),
+  };
+}
