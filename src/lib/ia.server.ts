@@ -81,17 +81,26 @@ const INSTRUCOES =
 
 /** Google Gemini (chave grátis em aistudio.google.com), usado fora da Lovable, ex.: Vercel. */
 async function gerarComGemini(titulo: string, descricao: string, chave: string, signal?: AbortSignal): Promise<Plano> {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${chave}`;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    signal: signal ?? null,
-    body: JSON.stringify({
-      systemInstruction: { parts: [{ text: INSTRUCOES }] },
-      contents: [{ role: "user", parts: [{ text: `Título: ${titulo}\nDescrição: ${descricao || "(sem descrição)"}` }] }],
-      generationConfig: { responseMimeType: "application/json" },
-    }),
-  });
+  // Tenta o apelido "sempre o mais novo" e, se não existir, modelos recentes.
+  const modelos = ["gemini-flash-latest", "gemini-3.8-flash", "gemini-flash-lite-latest"];
+  let res: Response | undefined;
+  for (const modelo of modelos) {
+    res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${chave}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal: signal ?? null,
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: INSTRUCOES }] },
+          contents: [{ role: "user", parts: [{ text: `Título: ${titulo}\nDescrição: ${descricao || "(sem descrição)"}` }] }],
+          generationConfig: { responseMimeType: "application/json" },
+        }),
+      },
+    );
+    if (res.status !== 404) break;
+  }
+  if (!res) throw new Error("Gemini sem resposta");
   if (!res.ok) {
     const corpo = (await res.text()).slice(0, 200);
     throw new Error(`Gemini respondeu ${res.status}: ${corpo}`);
