@@ -148,6 +148,11 @@ export class Quadro {
     return no;
   }
 
+  /** Esvazia todas as colunas (usado antes de recarregar do banco). */
+  limpar(): void {
+    this.colunas.paraArray().forEach((c) => (c.tarefas = []));
+  }
+
   adicionar(t: Tarefa): void {
     this.noDaColuna(t.status).valor.tarefas.unshift(t);
   }

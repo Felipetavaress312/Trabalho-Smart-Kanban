@@ -56,6 +56,7 @@ function QuadroPage() {
     repo.current
       .listar()
       .then((ts) => {
+        quadro.limpar();
         ts.forEach((t) => quadro.adicionar(t));
         redesenhar();
       })
