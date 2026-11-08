@@ -82,7 +82,8 @@ const INSTRUCOES =
 /** Google Gemini (chave grátis em aistudio.google.com), usado fora da Lovable, ex.: Vercel. */
 async function gerarComGemini(titulo: string, descricao: string, chave: string, signal?: AbortSignal): Promise<Plano> {
   // Tenta o apelido "sempre o mais novo" e, se não existir, modelos recentes.
-  const modelos = ["gemini-flash-latest", "gemini-3.8-flash", "gemini-flash-lite-latest"];
+  // Se um estiver fora do ar ou lotado (404/429/503), passa para o próximo.
+  const modelos = ["gemini-flash-latest", "gemini-flash-lite-latest", "gemini-3.8-flash", "gemini-flash-latest"];
   let res: Response | undefined;
   for (const modelo of modelos) {
     res = await fetch(
@@ -98,7 +99,8 @@ async function gerarComGemini(titulo: string, descricao: string, chave: string, 
         }),
       },
     );
-    if (res.status !== 404) break;
+    if (![404, 429, 500, 503].includes(res.status)) break;
+    await new Promise((r) => setTimeout(r, 800));
   }
   if (!res) throw new Error("Gemini sem resposta");
   if (!res.ok) {
