@@ -17,6 +17,6 @@ export const autoPlanejar = createServerFn({ method: "POST" })
     } catch (e: unknown) {
       // Se a IA falhar (sem internet, sem créditos, sem chave), usa o plano local.
       console.error("Auto-planejamento falhou, usando plano local", e);
-      return { ok: true as const, ...planoLocal(data.titulo, data.descricao) };
+      return { ok: true as const, aviso: `IA indisponível (${(e as Error)?.message ?? "erro"}). Usado plano local.`, ...planoLocal(data.titulo, data.descricao) };
     }
   });

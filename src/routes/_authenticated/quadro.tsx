@@ -180,7 +180,8 @@ function QuadroPage() {
     try {
       const r = await planejar({ data: { titulo: t.titulo, descricao: t.descricao } });
       t.subtarefas = await repo.current.salvarSubtarefas(t.id, r.subtarefas);
-      toast.success(`${t.subtarefas.length} subtarefas planejadas`);
+      if ("aviso" in r && r.aviso) toast.warning(r.aviso, { duration: 15000 });
+      else toast.success(`${t.subtarefas.length} subtarefas planejadas pela IA`);
       redesenhar();
     } catch (err) {
       toast.error((err as Error).message);
